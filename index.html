@@ -109,10 +109,11 @@
     }
     .slot-26 {
       inset: auto;
-      left: 54.8%;
-      top: 31.8%;
-      width: 41.6%;
-      height: 23.4%;
+      left: 12.5%;
+      top: 8.8%;
+      width: 75%;
+      height: auto;
+      aspect-ratio: 16 / 9;
       object-fit: contain;
       background: #000;
     }
@@ -135,6 +136,27 @@
 
     .edit-mode .slot-label { display: grid; }
     .slot-label.slot-14, .slot-label.slot-16 { height: auto; }
+
+    .sound-toggle {
+      position: absolute;
+      z-index: 6;
+      display: grid;
+      width: clamp(32px, 2.5vw, 44px);
+      aspect-ratio: 1;
+      place-items: center;
+      padding: 0;
+      border: 1px solid rgba(255,255,255,.68);
+      border-radius: 999px;
+      color: white;
+      background: rgba(18,15,16,.58);
+      box-shadow: 0 4px 16px rgba(0,0,0,.18);
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .sound-toggle:hover,
+    .sound-toggle:focus-visible { background: rgba(158,14,24,.9); outline: none; }
+    .sound-toggle svg { width: 48%; height: 48%; fill: currentColor; }
 
     .progress {
       position: fixed;
@@ -287,7 +309,7 @@
         alt: "OLAY Magic 25 全新抗老概念视觉沟通"
       },
       13: {
-        src: "assets/cny-copy-overlay.png?v=20260920",
+        src: "assets/cny-copy-overlay.png?v=20260921",
         alt: "OLAY CNY 2025 新年项目介绍"
       }
     };
@@ -304,6 +326,37 @@
     const portfolio = document.querySelector("#portfolio");
     const editMode = new URLSearchParams(location.search).get("edit") === "1";
     if (editMode) document.body.classList.add("edit-mode");
+
+    const mutedIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3 2.5-2.5L17.5 8 15 10.5 12.5 8 11 9.5l2.5 2.5-2.5 2.5 1.5 1.5 2.5-2.5 2.5 2.5 1.5-1.5-2.5-2.5z"/></svg>`;
+    const soundIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm11.5-1.5v2.1a3 3 0 0 1 0 4.8v2.1a5 5 0 0 0 0-9zm0-3v2.05a7 7 0 0 1 0 10.9v2.05a9 9 0 0 0 0-15z"/></svg>`;
+
+    function attachSoundToggle(video, frame) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "sound-toggle";
+      button.innerHTML = mutedIcon;
+      button.setAttribute("aria-label", "开启视频声音");
+
+      const position = () => {
+        const inset = Math.max(8, Math.min(14, frame.clientWidth * .008));
+        button.style.left = `${video.offsetLeft + video.offsetWidth - button.offsetWidth - inset}px`;
+        button.style.top = `${video.offsetTop + inset}px`;
+      };
+
+      button.addEventListener("click", event => {
+        event.stopPropagation();
+        video.muted = !video.muted;
+        video.defaultMuted = video.muted;
+        video.volume = video.muted ? 0 : 1;
+        button.innerHTML = video.muted ? mutedIcon : soundIcon;
+        button.setAttribute("aria-label", video.muted ? "开启视频声音" : "关闭视频声音");
+        if (video.paused) video.play().catch(() => {});
+      });
+
+      frame.append(button);
+      requestAnimationFrame(position);
+      new ResizeObserver(position).observe(video);
+    }
 
     PAGE_ORDER.forEach((sourcePage, index) => {
       const page = index + 1;
@@ -386,6 +439,7 @@
         video.preload = "metadata";
         video.addEventListener("error", () => { video.style.display = "none"; }, { once: true });
         frame.append(video);
+        if ([22, 26].includes(sourcePage)) attachSoundToggle(video, frame);
 
         const label = document.createElement("div");
         label.className = `slot-label ${slotClass}`;
